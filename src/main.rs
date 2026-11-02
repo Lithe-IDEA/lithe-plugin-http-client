@@ -5,8 +5,10 @@ use lithe_plugin_sdk::{Backend, FunctionError, PluginError, Value};
 use serde_json::json;
 use std::{sync::Arc, time::Duration};
 
+mod files;
+
 const INPUT_LIMIT: usize = 128 * 1024;
-const DEFAULT_PREVIEW_KIB: u64 = 512;
+const DEFAULT_PREVIEW_KIB: u64 = 128;
 const RESULT_LIMIT: usize = 900 * 1024;
 
 fn invalid(code: &str) -> FunctionError {
@@ -23,6 +25,7 @@ fn source(params: &Value) -> Result<&str, FunctionError> {
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let runtime = Arc::new(tokio::runtime::Runtime::new()?);
     let mut backend = Backend::new("lithe-http-client").version(env!("CARGO_PKG_VERSION"));
+    files::register(&mut backend)?;
     backend.function("requests.parse", |params, context| {
         context.check_cancelled()?;
         let parsed = parse::parse(source(&params)?);
@@ -34,7 +37,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             None => DEFAULT_PREVIEW_KIB,
             Some(value) => value
                 .as_u64()
-                .filter(|n| [48, 256, 512].contains(n))
+                .filter(|n| (1..=512).contains(n))
                 .ok_or_else(|| invalid("httpClient.invalidInput"))?,
         };
         let preview_limit = preview_kib as usize * 1024;

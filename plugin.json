@@ -5,7 +5,7 @@
   "version": "0.1.1",
   "pluginAPIVersion": 3,
   "requires": {
-    "backend": 1,
+    "backend": 2,
     "serverProcess": 1,
     "ui": 2
   },
@@ -17,7 +17,10 @@
   "permissions": [
     "backend.launch",
     "ui.contribute",
-    "ui.web"
+    "ui.web",
+    "workspace.metadata",
+    "preview.open",
+    "documents.read"
   ],
   "activationEvents": [
     "onView:io.github.lithe-idea.http-client.client"
@@ -40,7 +43,7 @@
           "entry": "ui/index.html"
         },
         "icon": {
-          "path": "assets/http-tool.svg",
+          "path": "assets/http.svg",
           "mode": "template"
         }
       }

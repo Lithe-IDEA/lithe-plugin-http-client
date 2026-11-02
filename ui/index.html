@@ -1,13 +1,48 @@
 <!doctype html>
 <html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>HTTP Client</title><link rel="stylesheet" href="style.css"><script src="main.js" defer></script></head>
 <body>
-<header><label class="preview-setting"><span data-i18n="previewLimit"></span><select id="preview-limit" data-label="previewLimit"><option value="48">48 KiB</option><option value="256">256 KiB</option><option value="512" selected>512 KiB</option></select></label><span class="spacer"></span><span class="shortcut">⌘ / Ctrl ↵</span><button id="cancel" data-i18n="cancel" disabled></button><button id="send" class="primary" data-i18n="send" disabled></button></header>
+<header class="workspace-toolbar">
+  <div class="workspace-identity"><span class="workspace-mark" aria-hidden="true"><span class="globe-icon"></span></span><span class="section-title" data-i18n="source"></span><span class="file-extension">.http</span></div>
+  <span class="toolbar-divider" aria-hidden="true"></span>
+  <button id="open-file" class="quiet-button" data-title="openFile"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1.5 13V3.5h5l1.5 2h6.5V13zM2 7h12"/></svg><span id="file-name" data-i18n="openFile"></span></button>
+  <button id="parse" class="quiet-button" data-title="parse"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 2.5h7l3 3V14H3zM9.5 3v3H12M5.5 8h5M5.5 10.5h5"/></svg><span data-i18n="parse"></span></button>
+  <span class="spacer"></span>
+  <label class="preview-setting"><span data-i18n="previewLimit"></span><span class="number-field"><input id="preview-limit" type="number" min="1" max="512" step="1" value="128" data-label="previewLimit"><span>KiB</span></span></label>
+  <span class="toolbar-divider" aria-hidden="true"></span>
+  <button id="cancel" class="quiet-button" data-i18n="cancel" disabled hidden></button>
+  <button id="send" class="primary" disabled><svg class="send-icon" viewBox="0 0 16 16" aria-hidden="true"><path d="m5 3 7 5-7 5z"/></svg><span data-i18n="send"></span><kbd class="shortcut">⌘ ↵</kbd></button>
+</header>
 <main>
-<section class="request-pane"><div class="bar"><label for="source" data-i18n="source"></label><span class="spacer"></span><button id="parse" data-i18n="parse"></button></div>
-<div class="selection"><select id="requests" data-label="select"></select></div>
-<textarea id="source" spellcheck="false" autocapitalize="off" autocomplete="off" data-label="source"></textarea></section>
-<section class="response-pane"><div class="bar"><span data-i18n="response"></span><span id="metrics" class="spacer"></span><span id="code"></span></div>
-<div class="response-tools"><button id="body-tab" aria-pressed="true" data-i18n="body"></button><button id="headers-tab" aria-pressed="false" data-i18n="headers"></button><span class="spacer"></span><label class="pretty-label"><input type="checkbox" id="pretty" checked><span data-i18n="pretty"></span></label></div>
-<div id="response-headers" hidden></div><textarea id="response" readonly spellcheck="false" data-label="response"></textarea><p id="notice" hidden></p></section>
-</main><footer><span id="status" role="status" aria-live="polite"></span><span class="spacer"></span><span data-i18n="memory" class="memory"></span></footer>
+  <section class="request-pane" data-label="source">
+    <div class="selection">
+      <span id="method" class="method-badge" hidden></span>
+      <label class="select-field request-select"><select id="requests" data-label="select"></select></label>
+      <span class="toolbar-divider" aria-hidden="true"></span>
+      <label class="select-field history-select"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2.5 5.5A5.5 5.5 0 1 1 2.7 11M2 2.5V6h3.5M8 4.5V8l2 1.5"/></svg><select id="history" data-label="history"></select><span id="history-count" class="count" hidden></span></label>
+      <button id="clear-history" class="icon-button" data-title="clearHistory"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 4.5h10M6 4V2h4v2M4.5 5l.5 9h6l.5-9M7 7v4M9 7v4"/></svg></button>
+    </div>
+    <div id="source" class="editor"></div>
+    <div class="pane-footer request-footer"><span class="language-tag">HTTP</span><span id="request-info"></span><span class="spacer"></span><span class="session-hint" data-i18n="requestSession"></span></div>
+  </section>
+  <div id="splitter" role="separator" tabindex="0" aria-orientation="vertical" aria-valuemin="20" aria-valuemax="80" aria-valuenow="50" data-label="resize"></div>
+  <section class="response-pane" data-label="response">
+    <div class="response-tools">
+      <span class="section-title response-title" data-i18n="response"></span>
+      <div class="response-tabs"><button id="body-tab" aria-pressed="true" data-i18n="body"></button><button id="headers-tab" aria-pressed="false"><span data-i18n="headers"></span><span id="header-count" class="count" hidden></span></button></div>
+      <span id="code" class="status-badge"></span><span id="metrics"></span><span class="spacer"></span>
+      <button id="preview" class="preview-button" hidden data-title="previewHelp"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M1 8s2.5-4 7-4 7 4 7 4-2.5 4-7 4-7-4-7-4z"/><circle cx="8" cy="8" r="2"/></svg><span data-i18n="preview"></span></button>
+      <label class="pretty-label" data-title="pretty"><input type="checkbox" id="pretty" checked><span>JSON</span></label>
+      <button id="wrap" class="icon-button" aria-pressed="true" data-title="wrap"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 4h12M2 8h10a2 2 0 0 1 0 4H8m2-2-2 2 2 2M2 12h3"/></svg></button>
+    </div>
+    <div class="response-content">
+      <div id="response-empty" class="empty-state">
+        <div class="empty-symbol" aria-hidden="true"><span class="globe-icon"></span></div>
+        <strong id="empty-title" data-i18n="responseEmpty"></strong><p id="empty-detail" data-i18n="responseEmptyHint"></p><kbd id="empty-shortcut">⌘ ↵</kbd>
+      </div>
+      <div id="response-headers" hidden></div><div id="response" class="editor"></div>
+    </div>
+    <div class="pane-footer response-footer"><span id="content-type" class="language-tag" hidden></span><button id="leading-whitespace" class="whitespace-toggle" aria-pressed="false" hidden></button><span id="notice" role="status"></span><span class="spacer"></span><div class="export-control"><label class="select-field"><select id="save-mode" data-label="saveMode"><option value="body" data-i18n="saveBody"></option><option value="all" data-i18n="saveAll"></option></select></label><button id="save" class="icon-button" data-title="save"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 2v8m-3-3 3 3 3-3M3 10v3h10v-3"/></svg></button></div></div>
+  </section>
+</main>
+<footer><span class="status-indicator" aria-hidden="true"></span><span id="status" role="status" aria-live="polite"></span><span class="spacer"></span><span class="memory" data-title="memory"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="m8 1.5 5 2V7c0 3-2 5-5 7-3-2-5-4-5-7V3.5zM5.5 7.5 7 9l3.5-3.5"/></svg><span data-i18n="sessionOnly"></span></span></footer>
 </body></html>
