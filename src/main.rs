@@ -6,7 +6,8 @@ use serde_json::json;
 use std::{sync::Arc, time::Duration};
 
 const INPUT_LIMIT: usize = 128 * 1024;
-const PREVIEW_LIMIT: usize = 48 * 1024;
+const DEFAULT_PREVIEW_KIB: u64 = 512;
+const RESULT_LIMIT: usize = 900 * 1024;
 
 fn invalid(code: &str) -> FunctionError {
     PluginError::new(code, code).into()
@@ -29,6 +30,14 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     })?;
     backend.function("requests.execute", move |params, context| {
         context.check_cancelled()?;
+        let preview_kib = match params.get("previewLimitKiB") {
+            None => DEFAULT_PREVIEW_KIB,
+            Some(value) => value
+                .as_u64()
+                .filter(|n| [48, 256, 512].contains(n))
+                .ok_or_else(|| invalid("httpClient.invalidInput"))?,
+        };
+        let preview_limit = preview_kib as usize * 1024;
         let text = source(&params)?;
         let parsed = parse::parse(text);
         let index = params["index"]
@@ -80,20 +89,33 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         // Upstream caps the network body; the plugin protocol has a smaller JSON
         // budget. Trim on a UTF-8 boundary, and never return request credentials.
         if let Some(body) = response.body.as_mut()
-            && body.len() > PREVIEW_LIMIT
+            && body.len() > preview_limit
         {
-            let mut end = PREVIEW_LIMIT;
+            let mut end = preview_limit;
             while !body.is_char_boundary(end) {
                 end -= 1;
             }
             body.truncate(end);
             response.truncated = true;
         }
-        let value = serde_json::to_value(response)?;
-        if serde_json::to_vec(&value)?.len() > 512 * 1024 {
-            return Err(invalid("httpClient.responseTooLarge"));
+        // JSON escaping can expand text up to six times. Keep the result below
+        // the host's 1 MiB function-result budget, including response metadata.
+        loop {
+            let value = serde_json::to_value(&response)?;
+            let encoded_size = serde_json::to_vec(&value)?.len();
+            if encoded_size <= RESULT_LIMIT {
+                return Ok(value);
+            }
+            let Some(body) = response.body.as_mut().filter(|body| !body.is_empty()) else {
+                return Err(invalid("httpClient.responseTooLarge"));
+            };
+            let mut end = body.len().saturating_sub(encoded_size - RESULT_LIMIT);
+            while !body.is_char_boundary(end) {
+                end -= 1;
+            }
+            body.truncate(end);
+            response.truncated = true;
         }
-        Ok(value)
     })?;
     std::process::exit(backend.listen());
 }

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.1 — 2026-11-02 (preview)
+
+- Remove the duplicate HTTP Client title inside the native tool window.
+- Highlight header keys, separate values and collapse long values until expanded.
+- Configure body preview size in the panel: 48 / 256 / 512 KiB, default 512 KiB. Preserve Unicode and account for JSON escaping within the host transport budget.
+- Hide JSON formatting and body truncation notices while viewing headers.
+- Declare and package a dedicated theme-tinted HTTP tool-window icon.
+- Marketplace installation progress is host-owned and is tracked separately from this plugin release.
+
 ## 0.1.0 — 2026-11-02 (preview)
 
 - Independent HTTP Client tool window, preserving the native Lithe workbench.
