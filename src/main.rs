@@ -109,7 +109,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let Some(body) = response.body.as_mut().filter(|body| !body.is_empty()) else {
                 return Err(invalid("httpClient.responseTooLarge"));
             };
-            let mut end = body.len().saturating_sub(encoded_size - RESULT_LIMIT);
+            let reduction = (encoded_size - RESULT_LIMIT).min(body.len().div_ceil(2));
+            let mut end = body.len() - reduction;
             while !body.is_char_boundary(end) {
                 end -= 1;
             }

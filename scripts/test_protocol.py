@@ -196,6 +196,7 @@ class ProtocolTests(unittest.TestCase):
     def test_escaped_preview_respects_transport_budget(self):
         value = self.execute(f"GET {self.url}/escaped")["result"]
         self.assertTrue(value["truncated"])
+        self.assertGreater(len(value["body"]), 100 * 1024)
         self.assertLessEqual(len(json.dumps(value, separators=(",", ":")).encode()), 900 * 1024)
 
     def test_invalid_preview_limit_is_rejected(self):
