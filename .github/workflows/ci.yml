@@ -1,0 +1,26 @@
+name: Validate
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  protocol:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - run: cargo fmt --check
+      - run: cargo clippy --locked -- -D warnings
+      - run: cargo build --release --locked
+      - run: timeout 90s python3 scripts/test_protocol.py --binary target/release/lithe-http-client
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: protocol-test-report
+          path: .artifacts/test-stability/

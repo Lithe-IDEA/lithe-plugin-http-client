@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 2,
+  "id": "io.github.lithe-idea.http-client",
+  "displayName": "HTTP Client",
+  "version": "0.1.0",
+  "pluginAPIVersion": 3,
+  "requires": { "backend": 1, "serverProcess": 1, "ui": 2 },
+  "vendor": { "id": "io.github.lithe-idea", "displayName": "Lithe Community", "signatureRequirement": "none" },
+  "permissions": ["backend.launch", "ui.contribute", "ui.web"],
+  "activationEvents": ["onView:io.github.lithe-idea.http-client.client"],
+  "languages": [],
+  "backend": { "launch": { "kind": "packaged", "path": "bin/lithe-http-client" }, "arguments": [] },
+  "ui": { "toolWindows": [{ "id": "io.github.lithe-idea.http-client.client", "title": "HTTP Client", "placement": "bottom", "web": { "entry": "ui/index.html" } }] }
+}

@@ -1,0 +1,14 @@
+HTTP Client for Lithe
+Copyright 2026 Lithe Community contributors
+
+Uses unchanged ide-http and ide-core from OpenIDEA (Apache-2.0):
+https://github.com/l0ng-ai/openidea
+Revision: 3be40bd57c5718df39977c5f8b5d31f0ff3e692a
+
+Uses the official Lithe Rust plugin SDK (MIT):
+https://github.com/Lithe-IDEA/lithe-plugin-docs
+Revision: e689971c000c15a044df0502052fe7b2c1c6f84f
+
+Original copyright and license notices are retained in licenses/ in each
+release package. DEPENDENCIES.json records Cargo dependencies and notices.
+Upstream authors do not endorse this plugin.
