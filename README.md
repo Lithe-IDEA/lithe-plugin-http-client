@@ -1,12 +1,12 @@
 # HTTP Client for Lithe
 
-**0.1.1 preview:** protocol/Core integration is verified; native install/window and Intel hardware acceptance are still pending.
+**0.1.2 preview:** request editing, session history, response exports and a compact UI. Chrome/WebKit and protocol checks pass; native file-dialog/editor-preview and Intel hardware acceptance remain pending.
 
 A compact HTTP workbench inside Lithe's native macOS tool window. Paste `.http` requests, select one, send it, and inspect the response without leaving the IDE.
 
 ## Install and use
 
-Install **HTTP Client** from the Lithe plugin marketplace when its listing is available, or download the ZIP from [Releases](https://github.com/Lithe-IDEA/lithe-plugin-http-client/releases) and use Lithe's install-from-disk action. The universal macOS package contains Apple Silicon and Intel code. This development branch requires `backend: 2`, `serverProcess: 1`, and `ui: 2` (plugin API 3), adding workspace metadata, document-summary and preview permissions for HTML preview. Windows is not supported in this release.
+Install **HTTP Client** from the Lithe plugin marketplace when its listing is available, or download the ZIP from [Releases](https://github.com/Lithe-IDEA/lithe-plugin-http-client/releases) and use Lithe's install-from-disk action. The universal macOS package contains Apple Silicon and Intel code. This version requires `backend: 2`, `serverProcess: 1`, and `ui: 2` (plugin API 3), adding workspace metadata, document-summary and preview permissions for HTML preview. Windows is not supported in this release.
 
 Open the **HTTP Client** bottom tool window. Use **Open .http** to choose a UTF-8 `.http` or `.rest` file (up to 128 KiB), or paste a request. Files are read and their requests listed immediately. Choose an entry and click **Send** (⌘/Ctrl+Enter). **Read requests** reparses pasted text. Editing invalidates the selection; sending reparses and selects the first request. Choosing a file, request or history entry never sends it automatically.
 
@@ -37,7 +37,7 @@ The bottom-right save action opens the host's native save dialog and exports **B
 
 HTML responses collapse complete leading blank lines in the text viewer, keeping the first content line at the top. The footer shows the collapsed line count and lets you restore the original view. Internal whitespace, saved files and the editor preview retain the original response.
 
-HTML responses expose **Preview**. The current public host API accepts workspace files rather than arbitrary HTML strings: this action asks where to save the response **inside the current local workspace**, then opens that file in the editor's **preview-only** presentation. It checks host capability availability and refuses an already-open target to avoid displaying an older live buffer. The file remains in the location you chose; there is no hidden response cache. HTML runs only in the host's separate HTML preview, without the plugin bridge. Native dialog and editor-preview acceptance are still pending on this branch.
+HTML responses expose **Preview**. The current public host API accepts workspace files rather than arbitrary HTML strings: this action asks where to save the response **inside the current local workspace**, then opens that file in the editor's **preview-only** presentation. It checks host capability availability and refuses an already-open target to avoid displaying an older live buffer. The file remains in the location you chose; there is no hidden response cache. HTML runs only in the host's separate HTML preview, without the plugin bridge. Native dialog and editor-preview acceptance are still pending for this preview.
 
 ## Scope and data handling
 
@@ -66,7 +66,7 @@ python3 scripts/package.py
 python3 scripts/test_protocol.py --binary dist/io.github.lithe-idea.http-client/bin/lithe-http-client
 ```
 
-Use a consistent rustup `cargo`/`rustc` toolchain on PATH when cross-compiling. Packaging uses `lipo`, validates both architectures, signs the executable ad-hoc, checks its signature, includes dependency notices and creates `dist/http-client-0.1.1-darwin.zip` with one plugin-ID parent directory and a SHA-256 sidecar. Published release assets are immutable: fixes require a new version.
+Use a consistent rustup `cargo`/`rustc` toolchain on PATH when cross-compiling. Packaging uses `lipo`, validates both architectures, signs the executable ad-hoc, checks its signature, includes dependency notices and creates `dist/http-client-0.1.2-darwin.zip` with one plugin-ID parent directory and a SHA-256 sidecar. Published release assets are immutable: fixes require a new version.
 
 Protocol integration tests use real SDK processes and a loopback HTTP server, with bounded waits and cleanup. Individual timings and failures are emitted to `.artifacts/test-stability/index.html` and `junit.xml`.
 
