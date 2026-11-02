@@ -185,22 +185,24 @@ class ProtocolTests(unittest.TestCase):
         self.assertNotIn("\ufffd", value["body"])
 
     def test_configurable_preview_and_default(self):
-        for limit in [256, 512]:
+        for limit in [1, 49, 256, 512]:
             value = self.host.answer(self.host.invoke("requests.execute", {"text": f"GET {self.url}/large", "index": 0, "previewLimitKiB": limit}))["result"]
             self.assertGreater(len(value["body"].encode()), (limit - 1) * 1024)
             self.assertLessEqual(len(value["body"].encode()), limit * 1024)
             self.assertTrue(value["truncated"])
         value = self.execute(f"GET {self.url}/large")["result"]
-        self.assertGreater(len(value["body"].encode()), 511 * 1024)
+        self.assertGreater(len(value["body"].encode()), 127 * 1024)
+        self.assertLessEqual(len(value["body"].encode()), 128 * 1024)
+        self.assertTrue(value["truncated"])
 
     def test_escaped_preview_respects_transport_budget(self):
-        value = self.execute(f"GET {self.url}/escaped")["result"]
+        value = self.host.answer(self.host.invoke("requests.execute", {"text": f"GET {self.url}/escaped", "index": 0, "previewLimitKiB": 512}))["result"]
         self.assertTrue(value["truncated"])
         self.assertGreater(len(value["body"]), 100 * 1024)
         self.assertLessEqual(len(json.dumps(value, separators=(",", ":")).encode()), 900 * 1024)
 
     def test_invalid_preview_limit_is_rejected(self):
-        for limit in [0, 1024, "512", None, 48.5]:
+        for limit in [0, 513, 1024, "512", None, 48.5]:
             reply = self.host.answer(self.host.invoke("requests.execute", {"text": f"GET {self.url}/ok", "index": 0, "previewLimitKiB": limit}))
             self.assertIn("httpClient.invalidInput", json.dumps(reply))
 

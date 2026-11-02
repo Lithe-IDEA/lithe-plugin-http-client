@@ -12,6 +12,12 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run check
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
@@ -19,6 +25,11 @@ jobs:
       - run: cargo clippy --locked -- -D warnings
       - run: cargo build --release --locked
       - run: timeout 90s python3 scripts/test_protocol.py --binary target/release/lithe-http-client
+      - run: npx playwright install --with-deps chromium
+      - run: timeout 90s node scripts/test_ui.js
+        env:
+          HTTP_CLIENT_BINARY: target/release/lithe-http-client
+          HTTP_CLIENT_BROWSER: chromium
       - uses: actions/upload-artifact@v4
         if: always()
         with:

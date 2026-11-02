@@ -12,3 +12,7 @@ Revision: e689971c000c15a044df0502052fe7b2c1c6f84f
 Original copyright and license notices are retained in licenses/ in each
 release package. DEPENDENCIES.json records Cargo dependencies and notices.
 Upstream authors do not endorse this plugin.
+
+The bundled UI uses CodeMirror 6 and Lezer (MIT). Exact bundled versions
+and their original license texts are in ui/DEPENDENCIES.json and
+ui/THIRD_PARTY_LICENSES.txt.
