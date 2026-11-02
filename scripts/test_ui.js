@@ -15,7 +15,16 @@ async () => {
     await run(true);
     assert(calls.map(x=>x[1].function).join() === "requests.parse,requests.execute", "Send must parse before executing");
     assert(response.value.includes('\n  "ok": true'), "Pretty JSON missing"); checks.push("parse-send-format");
-    $("headers-tab").click(); assert(response.value.includes("content-type: application/json"), "Headers missing");
+    $("headers-tab").click(); assert($("response-headers").textContent.includes("content-type"), "Headers missing");
+    assert(response.hidden && document.querySelector(".pretty-label").hidden, "Body-only controls must be hidden");
+    const details = $("response-headers").querySelector("details");
+    assert(!details.open, "Headers must start collapsed");
+    details.querySelector("summary").click(); assert(details.open, "Header cannot expand");
+    assert(details.querySelector(".header-value").textContent === "application/json", "Full header lost");
+    assert(calls.at(-1)[1].params.previewLimitKiB === 512, "Default preview size missing");
+    $("preview-limit").value = "256";
+    await run(true); assert(calls.at(-1)[1].params.previewLimitKiB === 256, "Preview setting not used");
+    checks.push("header-disclosure-preview-setting");
     $("body-tab").click(); $("pretty").checked=false; $("pretty").dispatchEvent(new Event("change"));
     assert(response.value === sample.body, "Raw body changed"); checks.push("headers-raw");
     sample.body='<img src=x onerror="window.injected=true">';

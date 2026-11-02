@@ -1,7 +1,7 @@
 "use strict";
 const messages = {
-  en: { source: "Request · .http", response: "Response", select: "Select request", parse: "Read requests", send: "Send", cancel: "Cancel", ready: "Ready", empty: "No requests found. Check the request line.", working: "Working…", cancelling: "Cancelling…", cancelled: "Cancelled", truncated: "Response preview truncated at 48 KiB or the upstream body limit.", binary: "Binary response — text preview unavailable.", bridge: "Open this plugin in Lithe to send requests.", failed: "Request failed. Try again.", body: "Body", headers: "Headers", pretty: "Format JSON", memory: "Not saved to disk", hint: "Send a request to inspect its response.", stale: "Request changed. Send will read it again.", "httpClient.invalidInput": "Invalid or oversized input (maximum 128 KiB).", "httpClient.fileIncludeUnsupported": "Local file includes are not supported. Paste the body instead.", "httpClient.handlerUnsupported": "Response scripts and file redirects are not supported. Remove them before sending.", "httpClient.prepareFailed": "Check request syntax and inline variables. Environment files are not loaded.", "httpClient.invalidScheme": "Only HTTP and HTTPS are supported.", "httpClient.timeout": "The request exceeded 30 seconds.", "httpClient.transportFailed": "Connection failed. Check the URL, network and certificate.", "httpClient.responseTooLarge": "Response metadata exceeds the plugin limit." },
-  zh: { source: "请求 · .http", response: "响应", select: "选择请求", parse: "读取请求", send: "发送", cancel: "取消", ready: "就绪", empty: "未找到请求，请检查请求行。", working: "处理中…", cancelling: "正在取消…", cancelled: "已取消", truncated: "响应预览已在 48 KiB 或上游正文上限处截断。", binary: "二进制响应，无法预览文本。", bridge: "请在 Lithe 中打开此插件以发送请求。", failed: "请求失败，请重试。", body: "正文", headers: "响应头", pretty: "格式化 JSON", memory: "不保存到磁盘", hint: "发送请求后在此查看响应。", stale: "请求已修改，发送时会重新读取。", "httpClient.invalidInput": "输入无效或超过 128 KiB。", "httpClient.fileIncludeUnsupported": "暂不支持本地文件引用，请直接粘贴正文。", "httpClient.handlerUnsupported": "暂不支持响应脚本和文件重定向，请移除后再发送。", "httpClient.prepareFailed": "请检查请求语法与内联变量；不会加载环境文件。", "httpClient.invalidScheme": "仅支持 HTTP 和 HTTPS。", "httpClient.timeout": "请求超过 30 秒。", "httpClient.transportFailed": "连接失败，请检查地址、网络与证书。", "httpClient.responseTooLarge": "响应元数据超过插件限制。" }
+  en: { previewLimit: "Body preview", expandHeader: "Expand or collapse header value", source: "Request · .http", response: "Response", select: "Select request", parse: "Read requests", send: "Send", cancel: "Cancel", ready: "Ready", empty: "No requests found. Check the request line.", working: "Working…", cancelling: "Cancelling…", cancelled: "Cancelled", truncated: "Response preview truncated. Increase the preview limit and send again; escaped content may reach the transport limit earlier.", binary: "Binary response — text preview unavailable.", bridge: "Open this plugin in Lithe to send requests.", failed: "Request failed. Try again.", body: "Body", headers: "Headers", pretty: "Format JSON", memory: "Not saved to disk", hint: "Send a request to inspect its response.", stale: "Request changed. Send will read it again.", "httpClient.invalidInput": "Invalid or oversized input (maximum 128 KiB).", "httpClient.fileIncludeUnsupported": "Local file includes are not supported. Paste the body instead.", "httpClient.handlerUnsupported": "Response scripts and file redirects are not supported. Remove them before sending.", "httpClient.prepareFailed": "Check request syntax and inline variables. Environment files are not loaded.", "httpClient.invalidScheme": "Only HTTP and HTTPS are supported.", "httpClient.timeout": "The request exceeded 30 seconds.", "httpClient.transportFailed": "Connection failed. Check the URL, network and certificate.", "httpClient.responseTooLarge": "Response metadata exceeds the plugin limit." },
+  zh: { previewLimit: "正文预览上限", expandHeader: "展开或收起响应头值", source: "请求 · .http", response: "响应", select: "选择请求", parse: "读取请求", send: "发送", cancel: "取消", ready: "就绪", empty: "未找到请求，请检查请求行。", working: "处理中…", cancelling: "正在取消…", cancelled: "已取消", truncated: "响应预览已截断。可调高预览上限后重新发送；含转义字符的内容可能先达到传输上限。", binary: "二进制响应，无法预览文本。", bridge: "请在 Lithe 中打开此插件以发送请求。", failed: "请求失败，请重试。", body: "正文", headers: "响应头", pretty: "格式化 JSON", memory: "不保存到磁盘", hint: "发送请求后在此查看响应。", stale: "请求已修改，发送时会重新读取。", "httpClient.invalidInput": "输入无效或超过 128 KiB。", "httpClient.fileIncludeUnsupported": "暂不支持本地文件引用，请直接粘贴正文。", "httpClient.handlerUnsupported": "暂不支持响应脚本和文件重定向，请移除后再发送。", "httpClient.prepareFailed": "请检查请求语法与内联变量；不会加载环境文件。", "httpClient.invalidScheme": "仅支持 HTTP 和 HTTPS。", "httpClient.timeout": "请求超过 30 秒。", "httpClient.transportFailed": "连接失败，请检查地址、网络与证书。", "httpClient.responseTooLarge": "响应元数据超过插件限制。" }
 };
 const chinese = String(window.lithe?.context?.locale || navigator.language).startsWith("zh");
 const t = key => (chinese ? messages.zh : messages.en)[key] || messages.en.failed;
@@ -19,6 +19,7 @@ function controls() {
   parseButton.disabled = busy || !window.lithe || !source.value.trim();
   send.disabled = busy || !window.lithe || !source.value.trim();
   cancel.disabled = !active || cancelled;
+  $("preview-limit").disabled = busy;
   source.disabled = busy; requests.disabled = busy || !requests.options.length;
   $("pretty").disabled = tab !== "body" || !result || result.truncated || result.body == null;
 }
@@ -32,13 +33,38 @@ function render() {
   if (result) {
     content = tab === "headers" ? `${result.version} ${result.status} ${result.statusText}\n${result.headers.map(([k,v]) => `${k}: ${v}`).join("\n")}` : result.body ?? t("binary");
     if (tab === "body" && $("pretty").checked && !result.truncated && result.body != null) {
-      try { const formatted = JSON.stringify(JSON.parse(content), null, 2); if (formatted.length <= 128 * 1024) content = formatted; } catch { /* Non-JSON stays verbatim. */ }
+      try { const formatted = JSON.stringify(JSON.parse(content), null, 2); if (formatted.length <= 2 * 1024 * 1024) content = formatted; } catch { /* Non-JSON stays verbatim. */ }
     }
   }
   response.value = content;
-  $("notice").hidden = !result?.truncated;
+  response.hidden = tab === "headers";
+  $("response-headers").hidden = tab !== "headers";
+  document.querySelector(".pretty-label").hidden = tab !== "body";
+  renderHeaders();
+  $("notice").hidden = tab !== "body" || !result?.truncated;
   $("notice").textContent = result?.truncated ? t("truncated") : "";
   controls();
+}
+let renderedHeaders = null;
+function renderHeaders() {
+  if (renderedHeaders === result) return;
+  renderedHeaders = result;
+  const container = $("response-headers");
+  container.replaceChildren();
+  if (!result) return;
+  const protocol = document.createElement("p");
+  protocol.className = "response-protocol";
+  protocol.textContent = `${result.version} ${result.status} ${result.statusText}`;
+  container.append(protocol);
+  for (const [key, value] of result.headers) {
+    const detail = document.createElement("details");
+    const summary = document.createElement("summary");
+    summary.title = t("expandHeader");
+    const name = document.createElement("span"); name.className = "header-key"; name.textContent = key;
+    const preview = document.createElement("span"); preview.className = "header-preview"; preview.textContent = value;
+    const full = document.createElement("div"); full.className = "header-value"; full.textContent = value;
+    summary.append(name, preview); detail.append(summary, full); container.append(detail);
+  }
 }
 async function invoke(name, params) {
   active = crypto.randomUUID(); controls();
@@ -64,7 +90,7 @@ async function run(execute) {
   try {
     if (!execute || parsedText !== source.value) { if (!await parse()) return; }
     if (cancelled) return;
-    if (execute) result = await invoke("requests.execute", { text: source.value, index: Number(requests.value) });
+    if (execute) result = await invoke("requests.execute", { text: source.value, index: Number(requests.value), previewLimitKiB: Number($("preview-limit").value) });
     status("ready");
   } catch (error) {
     const wasCancelled = cancelled || error?.code === "requestCancelled";

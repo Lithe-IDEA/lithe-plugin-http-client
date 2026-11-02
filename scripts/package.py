@@ -29,6 +29,7 @@ with tempfile.TemporaryDirectory(dir=destination) as temporary:
     shutil.copy2(root / "plugin.json", package)
     shutil.copy2(root / "README.md", package)
     shutil.copytree(root / "ui", package / "ui")
+    shutil.copytree(root / "assets", package / "assets")
     licenses = package / "licenses"
     licenses.mkdir()
     records = []

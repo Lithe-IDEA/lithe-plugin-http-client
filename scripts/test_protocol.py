@@ -91,7 +91,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
         if self.path == "/slow":
             self.server.entered.set()
             self.server.release.wait(timeout=8)
-        body = ("好🙂" * 20000).encode() if self.path == "/large" else b'{"ok":true}'
+        body = ("好🙂" * 100000).encode() if self.path == "/large" else b'{"ok":true}'
+        if self.path == "/escaped": body = b"\x01" * (512 * 1024)
         self.reply(body)
 
     def do_POST(self):
@@ -177,11 +178,31 @@ class ProtocolTests(unittest.TestCase):
         self.assertEqual(self.execute(f"GET {self.url}/ok")["result"]["status"], 200)
 
     def test_unicode_response_preview_is_bounded(self):
-        reply = self.execute(f"GET {self.url}/large")
+        reply = self.host.answer(self.host.invoke("requests.execute", {"text": f"GET {self.url}/large", "index": 0, "previewLimitKiB": 48}))
         value = reply["result"]
         self.assertTrue(value["truncated"])
         self.assertLessEqual(len(value["body"].encode()), 48 * 1024)
         self.assertNotIn("\ufffd", value["body"])
+
+    def test_configurable_preview_and_default(self):
+        for limit in [256, 512]:
+            value = self.host.answer(self.host.invoke("requests.execute", {"text": f"GET {self.url}/large", "index": 0, "previewLimitKiB": limit}))["result"]
+            self.assertGreater(len(value["body"].encode()), (limit - 1) * 1024)
+            self.assertLessEqual(len(value["body"].encode()), limit * 1024)
+            self.assertTrue(value["truncated"])
+        value = self.execute(f"GET {self.url}/large")["result"]
+        self.assertGreater(len(value["body"].encode()), 511 * 1024)
+
+    def test_escaped_preview_respects_transport_budget(self):
+        value = self.execute(f"GET {self.url}/escaped")["result"]
+        self.assertTrue(value["truncated"])
+        self.assertGreater(len(value["body"]), 100 * 1024)
+        self.assertLessEqual(len(json.dumps(value, separators=(",", ":")).encode()), 900 * 1024)
+
+    def test_invalid_preview_limit_is_rejected(self):
+        for limit in [0, 1024, "512", None, 48.5]:
+            reply = self.host.answer(self.host.invoke("requests.execute", {"text": f"GET {self.url}/ok", "index": 0, "previewLimitKiB": limit}))
+            self.assertIn("httpClient.invalidInput", json.dumps(reply))
 
     def test_no_state_files_written(self):
         self.assertEqual(self.execute(f"GET {self.url}/ok")["result"]["status"], 200)

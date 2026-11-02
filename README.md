@@ -1,6 +1,6 @@
 # HTTP Client for Lithe
 
-**0.1.0 preview:** protocol/Core integration is verified; native install/window and Intel hardware acceptance are still pending.
+**0.1.1 preview:** protocol/Core integration is verified; native install/window and Intel hardware acceptance are still pending.
 
 A small HTTP workbench inside Lithe's native macOS tool window. Paste `.http` requests, select one, send it, and inspect the response without leaving the IDE.
 
@@ -23,14 +23,14 @@ Content-Type: application/json
 {"name":"example"}
 ```
 
-Replace the address with a service you intend to call. The UI follows the host's theme and language (English / Chinese), displays status, elapsed time and received size, and switches between body and headers. JSON formatting is optional. Select response text and use the normal copy shortcut. Responses are displayed as text; returned HTML is never executed.
+Replace the address with a service you intend to call. The UI follows the host's theme and language (English / Chinese), displays status, elapsed time and received size, and switches between body and headers. JSON formatting is optional. Header names and values are separated; values start on one line and expand on click. The toolbar preview limit applies to the next send and is kept only for the current page session. JSON-escaped responses may be truncated earlier to fit the 900 KiB transport budget. Select response text and use the normal copy shortcut. Responses are displayed as text; returned HTML is never executed.
 
 ## Scope and data handling
 
 - The declared executable `bin/lithe-http-client` runs locally via the official Lithe plugin SDK. It performs HTTP(S) requests explicitly requested by the user. The Web UI only talks to the host bridge.
 - No request history, draft persistence or automatic workspace/file reads. Request text, headers and response content stay in memory; closing/recreating the page can discard them. The plugin does not write to its package or application bundle.
 - Inline `@variables`, headers, request bodies and `###` separators use the unchanged OpenIDEA parser/executor. Environment files, local body includes, response scripts and file redirects are unsupported. Includes and scripts/redirects fail explicitly before sending.
-- 128 KiB input, 30-second overall request timeout, cancellable operations, 48 KiB text preview. Upstream retains at most 16 MiB of network body. Received size can exceed the preview size; truncation is visible. Binary responses show status/headers without a body preview.
+- 128 KiB input, 30-second overall request timeout, cancellable operations, configurable 48 / 256 / 512 KiB text preview (512 KiB default). Upstream retains at most 16 MiB of network body. Received size can exceed the preview size; truncation is visible. Binary responses show status/headers without a body preview.
 - Network/prepare errors are localized stable codes; raw request URLs and transport errors are not exposed in diagnostics. User-supplied text and server responses can contain secrets; this is a local HTTP client, not a redaction tool.
 - Uses upstream default proxy behavior; Lithe's proxy settings are not synchronized. No custom TLS/credential/environment UI.
 - macOS host chrome remains native; the plugin content is a themed Web page. This is not a replacement for the editor or a new host architecture.
@@ -49,7 +49,7 @@ python3 scripts/package.py
 python3 scripts/test_protocol.py --binary dist/io.github.lithe-idea.http-client/bin/lithe-http-client
 ```
 
-Use a consistent rustup `cargo`/`rustc` toolchain on PATH when cross-compiling. Packaging uses `lipo`, validates both architectures, signs the executable ad-hoc, checks its signature, includes dependency notices and creates `dist/http-client-0.1.0-darwin.zip` with one plugin-ID parent directory and a SHA-256 sidecar. Published release assets are immutable: fixes require a new version.
+Use a consistent rustup `cargo`/`rustc` toolchain on PATH when cross-compiling. Packaging uses `lipo`, validates both architectures, signs the executable ad-hoc, checks its signature, includes dependency notices and creates `dist/http-client-0.1.1-darwin.zip` with one plugin-ID parent directory and a SHA-256 sidecar. Published release assets are immutable: fixes require a new version.
 
 Protocol integration tests use real SDK processes and a loopback HTTP server, with bounded waits and cleanup. Individual timings and failures are emitted to `.artifacts/test-stability/index.html` and `junit.xml`.
 
