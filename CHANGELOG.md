@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.1.3 — 2026-11-04 (preview)
+
+- Report structured host diagnostics through `litheLogging` 1: the SDK records one success or failure per backend function with its function ID, duration and a safe error category; cancellation is not a failure.
+- Suppress success entries for the high-frequency `requests.parse` and `response.previewInfo`; failures still log ERROR.
+- Report one `preview_truncated` degradation per backend run when a response preview hits its size limit.
+- Diagnostics exclude URLs, request/response bodies, headers, environment variables, credentials, file paths and selected file contents. A startup failure before the protocol channel opens exits with a status code instead of printing to stderr.
+- Vendor the official Rust SDK with per-file SHA-256 provenance checked by CI and packaging; correct its license in `NOTICE` and the README to Apache-2.0.
+- Requires a host offering `litheLogging` 1. Stable Lithe 0.6.7 lacks it, so keep 0.1.2 there. Published as a GitHub pre-release and not listed in Lithe Store.
+
 ## 0.1.2 — 2026-11-02 (preview)
 
 - Open UTF-8 `.http` / `.rest` files, select requests and navigate to their source lines without sending automatically.
