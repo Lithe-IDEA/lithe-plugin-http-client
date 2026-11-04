@@ -50,7 +50,7 @@ const escape = value => String(value).replace(/[<>&"']/g, c => ({ '<': '&lt;', '
     }
   });
   backend.on('error', error => { for (const entry of pending.values()) { clearTimeout(entry.timer); entry.reject(error); } pending.clear(); });
-  await request('initialize', { rootUri: new URL(`file://${temporary}/`).href, capabilities: { experimental: { litheFunctions: { versions: [1, 2, 3] } } } }).result;
+  await request('initialize', { rootUri: new URL(`file://${temporary}/`).href, capabilities: { experimental: { litheFunctions: { versions: [1, 2, 3] }, litheLogging: { versions: [1] } } } }).result;
   send({ method: 'initialized', params: {} });
   const bridgeSource = `window.lithe = { version: 1, context: { locale: new URL(location.href).searchParams.get('locale') || 'en', platform: 'macos' }, request: async (method, params) => {
     const response = await fetch('/bridge', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({method,params})});
