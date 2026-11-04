@@ -1,9 +1,15 @@
 //! Thin Lithe plugin adapter around OpenIDEA's unchanged HTTP parser and executor.
 use ide_core::CancellationToken;
 use ide_http::{env::Environments, exec, parse};
-use lithe_plugin_sdk::{Backend, FunctionError, PluginError, Value};
+use lithe_plugin_sdk::{Backend, FunctionError, PluginError, SdkError, Value};
 use serde_json::json;
-use std::{sync::Arc, time::Duration};
+use std::{
+    sync::{
+        Arc,
+        atomic::{AtomicBool, Ordering},
+    },
+    time::Duration,
+};
 
 mod files;
 
@@ -22,15 +28,35 @@ fn source(params: &Value) -> Result<&str, FunctionError> {
         .ok_or_else(|| invalid("httpClient.invalidInput"))
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let runtime = Arc::new(tokio::runtime::Runtime::new()?);
+fn main() {
+    let backend = match prepare_backend() {
+        Ok(backend) => backend,
+        // A setup failure precedes the protocol writer. Let the host record
+        // the process exit instead of Rust's stderr Termination formatter.
+        Err(_) => std::process::exit(2),
+    };
+    std::process::exit(backend.listen());
+}
+
+fn prepare_backend() -> Result<Backend, SdkError> {
     let mut backend = Backend::new("lithe-http-client").version(env!("CARGO_PKG_VERSION"));
+    let runtime = match tokio::runtime::Runtime::new() {
+        Ok(runtime) => Arc::new(runtime),
+        Err(_) => {
+            // The SDK's protocol output does not exist before listen. The
+            // host records this startup exit through its process lifecycle.
+            std::process::exit(1);
+        }
+    };
     files::register(&mut backend)?;
     backend.function("requests.parse", |params, context| {
         context.check_cancelled()?;
         let parsed = parse::parse(source(&params)?);
         Ok(json!({"requests": parsed.requests.into_iter().map(|r| r.block).collect::<Vec<_>>()}))
     })?;
+    backend.suppress_success_diagnostics("requests.parse")?;
+    // Record loss of preview data once per backend, without response contents.
+    let truncation_reported = AtomicBool::new(false);
     backend.function("requests.execute", move |params, context| {
         context.check_cancelled()?;
         let preview_kib = match params.get("previewLimitKiB") {
@@ -107,6 +133,12 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             let value = serde_json::to_value(&response)?;
             let encoded_size = serde_json::to_vec(&value)?.len();
             if encoded_size <= RESULT_LIMIT {
+                if response.truncated && !truncation_reported.swap(true, Ordering::Relaxed) {
+                    context
+                        .diagnostics()
+                        .degraded("requests.execute", "preview_truncated", None)
+                        .expect("registered operation and static diagnostic code");
+                }
                 return Ok(value);
             }
             let Some(body) = response.body.as_mut().filter(|body| !body.is_empty()) else {
@@ -121,5 +153,5 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             response.truncated = true;
         }
     })?;
-    std::process::exit(backend.listen());
+    Ok(backend)
 }

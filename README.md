@@ -80,7 +80,7 @@ Run that C ABI integration under an external 30-second process watchdog. `script
 
 ## Architecture and attribution
 
-The native Lithe host owns installation, activation, Web bridge, process lifecycle and cancellation. This plugin owns its UI and a thin Rust function adapter. HTTP parsing, variable resolution and transport come from unchanged `ide-http` / `ide-core` in [OpenIDEA](https://github.com/l0ng-ai/openidea), revision `3be40bd57c5718df39977c5f8b5d31f0ff3e692a` (Apache-2.0). The [official Rust SDK](https://github.com/Lithe-IDEA/lithe-plugin-docs) is pinned at `e689971c000c15a044df0502052fe7b2c1c6f84f` (MIT).
+The native Lithe host owns installation, activation, Web bridge, process lifecycle and cancellation. This plugin owns its UI and a thin Rust function adapter. HTTP parsing, variable resolution and transport come from unchanged `ide-http` / `ide-core` in [OpenIDEA](https://github.com/l0ng-ai/openidea), revision `3be40bd57c5718df39977c5f8b5d31f0ff3e692a` (Apache-2.0). The [official Rust SDK](https://github.com/Lithe-IDEA/lithe-plugin-docs) is a vendored source snapshot (Apache-2.0); `vendor/lithe-plugin-sdk/source-provenance.json` records its baseline, local changes, and file hashes.
 
 This project's adapter and UI are Apache-2.0. Release packages retain original dependency license/notice texts and include `DEPENDENCIES.json` and `UPSTREAM.json`. Missing crate-distribution license files are supplemented from pinned upstream sources recorded in `licenses/SOURCES.json`. Upstream authors do not endorse this plugin.
 
@@ -89,3 +89,24 @@ This project's adapter and UI are Apache-2.0. Release packages retain original d
 保留 Lithe 原生 Mac 工作台，在底部工具窗口提供独立 HTTP 面板。粘贴 `.http` 文本后可发送请求、取消、查看状态码／耗时／大小，切换正文与响应头，格式化 JSON。界面跟随宿主中英文和主题。首版仅支持 macOS；支持原生选择 `.http` / `.rest` 文件、请求高亮、会话历史、可拖动分栏、响应换行和原始内容保存。HTML 响应可先保存到当前工作区，再在编辑区预览。没有环境文件、正文文件引用、响应脚本或编辑器行内按钮；历史不会写入磁盘，只有显式保存或预览才写入选择的文件。原生文件对话框和编辑区 HTML 预览的完整验收仍待进行。
 
 UI source is `ui/src/main.js`; translations live in `shared/i18n/`. `npm run build` bundles all editor code locally into `ui/main.js` and records bundled UI dependency licenses. Commit generated outputs; `npm run check` verifies the bundle, licenses and matching English/Chinese keys. Packaging copies those files verbatim and requires no runtime downloads.
+
+## 宿主日志接入
+
+后端使用官方 Rust SDK 的结构化 `lithe/log` 通知，通过
+`experimental.litheLogging` 协商 v1；不创建日志文件、后台写入器或 stderr 回退。
+Lithe macOS 将这些事实按共享事件目录写入本次会话的
+`plugins/<plugin-id>/host.log`，统一决定级别、脱敏、限长、轮转和保留。
+stdout 只承载 SDK 的协议帧，日志不写安装目录，不影响代码签名和增量更新。
+
+SDK 在每个函数的最终返回边界记录一次成功或失败，包含注册的函数 ID、单调耗时
+以及安全的错误分类，并关联宿主原始 operation ID；取消不当作失败。
+高频 `requests.parse` 和预览能力探测的成功诊断被显式抑制。
+响应预览因大小上限被截断时，`Context.diagnostics().degraded` 在本次后端生命周期
+报告一次 `preview_truncated`；重复截断保持静默。
+诊断不含 URL、请求或响应正文、头部、环境变量、凭据、文件路径或所选文件内容。
+启动在协议通道建立前失败时以退出码交给宿主进程生命周期记录，不另行打印。
+
+仓库内 `vendor/lithe-plugin-sdk/` 是同批官方 SDK 源码快照，Cargo 使用相对路径，
+来源和逐文件 SHA-256 保存在其 `source-provenance.json`。这不是已发布的新版本或
+虚构的 Git revision。插件不要求 `${logDir}`，也不自行落盘；结构化通知的展示与
+持久化依赖支持新日志协议的宿主，不将旧宿主兼容路径作为本轮迁移目标。

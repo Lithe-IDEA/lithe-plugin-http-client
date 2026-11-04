@@ -9,6 +9,7 @@ import tempfile
 import zipfile
 
 root = Path(__file__).resolve().parents[1]
+subprocess.run(["node", str(root / "scripts/verify-sdk-source.mjs")], check=True, timeout=30)
 metadata = json.loads(subprocess.check_output(["cargo", "metadata", "--locked", "--format-version", "1", "--filter-platform", "aarch64-apple-darwin"], cwd=root, timeout=60))
 destination = root / "dist"
 destination.mkdir(exist_ok=True)
@@ -63,7 +64,7 @@ with tempfile.TemporaryDirectory(dir=destination) as temporary:
     (package / "DEPENDENCIES.json").write_text(json.dumps(records, ensure_ascii=False, indent=2) + "\n")
     (package / "UPSTREAM.json").write_text(json.dumps({
         "openidea": "3be40bd57c5718df39977c5f8b5d31f0ff3e692a",
-        "lithePluginSdk": "e689971c000c15a044df0502052fe7b2c1c6f84f",
+        "lithePluginSdk": json.loads((root / "vendor/lithe-plugin-sdk/source-provenance.json").read_text()),
         "cargoLockSha256": hashlib.sha256((root / "Cargo.lock").read_bytes()).hexdigest(),
         "upstreamModifications": [],
     }, indent=2) + "\n")
