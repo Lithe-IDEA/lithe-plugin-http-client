@@ -1,12 +1,12 @@
 # HTTP Client for Lithe
 
-**0.1.2 preview:** request editing, session history, response exports and a compact UI. Chrome/WebKit and protocol checks pass; native file-dialog/editor-preview and Intel hardware acceptance remain pending.
+**0.1.3 preview:** structured host diagnostics through `litheLogging` 1. It needs a Lithe preview build that offers `litheLogging` 1; stable Lithe 0.6.7 installs it but cannot start its backend, so keep 0.1.2 there. Chrome/WebKit and protocol checks pass; native file-dialog/editor-preview and Intel hardware acceptance remain pending.
 
 A compact HTTP workbench inside Lithe's native macOS tool window. Paste `.http` requests, select one, send it, and inspect the response without leaving the IDE.
 
 ## Install and use
 
-Install **HTTP Client** from the Lithe plugin marketplace when its listing is available, or download the ZIP from [Releases](https://github.com/Lithe-IDEA/lithe-plugin-http-client/releases) and use Lithe's install-from-disk action. The universal macOS package contains Apple Silicon and Intel code. This version requires `backend: 2`, `serverProcess: 1`, and `ui: 2` (plugin API 3), adding workspace metadata, document-summary and preview permissions for HTML preview. Windows is not supported in this release.
+Lithe Store lists 0.1.2. Version 0.1.3 is a GitHub pre-release that the Store does not list: download its ZIP from [Releases](https://github.com/Lithe-IDEA/lithe-plugin-http-client/releases) and use **Install Plugin from Disk…** in the ⚙ menu of Settings → Plugins. The universal macOS package contains Apple Silicon and Intel code. This version requires `backend: 2`, `serverProcess: 1`, and `ui: 2` (plugin API 3), plus a host offering `litheLogging: 1`; it uses workspace metadata, document-summary and preview permissions for HTML preview. Windows is not supported in this release.
 
 Open the **HTTP Client** bottom tool window. Use **Open .http** to choose a UTF-8 `.http` or `.rest` file (up to 128 KiB), or paste a request. Files are read and their requests listed immediately. Choose an entry and click **Send** (⌘/Ctrl+Enter). **Read requests** reparses pasted text. Editing invalidates the selection; sending reparses and selects the first request. Choosing a file, request or history entry never sends it automatically.
 
@@ -66,7 +66,7 @@ python3 scripts/package.py
 python3 scripts/test_protocol.py --binary dist/io.github.lithe-idea.http-client/bin/lithe-http-client
 ```
 
-Use a consistent rustup `cargo`/`rustc` toolchain on PATH when cross-compiling. Packaging uses `lipo`, validates both architectures, signs the executable ad-hoc, checks its signature, includes dependency notices and creates `dist/http-client-0.1.2-darwin.zip` with one plugin-ID parent directory and a SHA-256 sidecar. Published release assets are immutable: fixes require a new version.
+Use a consistent rustup `cargo`/`rustc` toolchain on PATH when cross-compiling. Packaging uses `lipo`, validates both architectures, signs the executable ad-hoc, checks its signature, includes dependency notices and creates `dist/http-client-0.1.3-darwin.zip` with one plugin-ID parent directory and a SHA-256 sidecar. Published release assets are immutable: fixes require a new version.
 
 Protocol integration tests use real SDK processes and a loopback HTTP server, with bounded waits and cleanup. Individual timings and failures are emitted to `.artifacts/test-stability/index.html` and `junit.xml`.
 
