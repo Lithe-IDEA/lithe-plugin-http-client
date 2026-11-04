@@ -6,7 +6,7 @@ publish = false
 license = "Apache-2.0"
 
 [dependencies]
-lithe-plugin-sdk = { git = "https://github.com/Lithe-IDEA/lithe-plugin-docs", rev = "e689971c000c15a044df0502052fe7b2c1c6f84f" }
+lithe-plugin-sdk = { path = "vendor/lithe-plugin-sdk" }
 ide-http = { git = "https://github.com/l0ng-ai/openidea", rev = "3be40bd57c5718df39977c5f8b5d31f0ff3e692a" }
 ide-core = { git = "https://github.com/l0ng-ai/openidea", rev = "3be40bd57c5718df39977c5f8b5d31f0ff3e692a" }
 serde_json = "1"

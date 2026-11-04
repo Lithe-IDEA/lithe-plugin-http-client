@@ -17,6 +17,7 @@ core = ctypes.CDLL(str(args.core.resolve()))
 core.lithe_core_execute_json.argtypes = [ctypes.c_char_p]
 core.lithe_core_execute_json.restype = ctypes.c_void_p
 core.lithe_core_free_string.argtypes = [ctypes.c_void_p]
+diagnostics = []
 
 
 def execute(command, payload):
@@ -35,6 +36,7 @@ def await_event(session, predicate):
     observed = []
     while time.monotonic() < deadline:
         value = execute("lsp.waitEvents", {"sessionId": session, "timeoutMilliseconds": 200})
+        diagnostics.extend(execute("diagnostics.drainCoreEvents", {})["events"])
         for event in value["events"]:
             observed.append(event)
             if predicate(event):
@@ -49,6 +51,7 @@ assert validated.get("status") != "rejected", validated
 with tempfile.TemporaryDirectory() as directory:
     started = execute("lsp.startServer", {
         "providerId": "http-client", "pluginId": manifest["id"],
+        "role": "backend",
         "executablePath": str(args.binary.resolve()), "arguments": [],
         "rootUri": Path(directory).as_uri(), "workingDirectory": directory,
         "initializeTimeoutMilliseconds": 5000, "requestTimeoutMilliseconds": 5000,
@@ -79,6 +82,14 @@ with tempfile.TemporaryDirectory() as directory:
             event = await_event(session, lambda event: event.get("type") == "requestCompleted" and event.get("operationId") == "pilot-http")
             assert event["result"]["value"]["status"] == 200, event
             assert json.loads(event["result"]["value"]["body"]) == {"ok": True}, event
+            diagnostics.extend(execute("diagnostics.drainCoreEvents", {})["events"])
+            finished = [entry for entry in diagnostics if entry["event"] == "plugins.operation.finished" and entry.get("op") == "pilot-http"]
+            assert len(finished) == 1, diagnostics
+            assert finished[0]["level"] == "INFO", finished
+            assert finished[0]["channel"] == f"plugins/{manifest['id']}/host", finished
+            assert finished[0]["fields"]["operation"] == "requests.execute", finished
+            assert finished[0]["fields"]["duration_ms"] >= 0, finished
+            assert not any(entry["event"] == "plugins.operation.finished" and entry.get("op") == "pilot-parse" for entry in diagnostics)
         finally:
             server.shutdown()
             server.server_close()

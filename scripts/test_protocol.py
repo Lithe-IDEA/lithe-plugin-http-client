@@ -31,6 +31,7 @@ class Host:
         self.selector.register(self.process.stdout, selectors.EVENT_READ)
         self.buffer = b""
         self.number = 0
+        self.diagnostics = []
 
     def send(self, method, params, request=True):
         self.number += 1
@@ -52,6 +53,8 @@ class Host:
                 if len(body) >= length:
                     frame = json.loads(body[:length])
                     self.buffer = body[length:]
+                    if frame.get("method") == "lithe/log":
+                        self.diagnostics.append(frame["params"])
                     if frame.get("id") == number and "method" not in frame:
                         return frame
                     continue
@@ -117,9 +120,10 @@ class ProtocolTests(unittest.TestCase):
         self.addCleanup(self.host.close)
         initialized = self.host.answer(self.host.send("initialize", {
             "rootUri": Path(self.temp.name).as_uri(),
-            "capabilities": {"experimental": {"litheFunctions": {"versions": [1, 2, 3]}}}
+            "capabilities": {"experimental": {"litheFunctions": {"versions": [1, 2, 3]}, "litheLogging": {"versions": [1]}}}
         }))
         self.assertIn("result", initialized)
+        self.assertEqual(initialized["result"]["capabilities"]["experimental"]["litheLogging"]["version"], 1)
         self.host.send("initialized", {}, request=False)
         self.server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Handler)
         self.server.daemon_threads = True
@@ -183,6 +187,17 @@ class ProtocolTests(unittest.TestCase):
         self.assertTrue(value["truncated"])
         self.assertLessEqual(len(value["body"].encode()), 48 * 1024)
         self.assertNotIn("\ufffd", value["body"])
+        # The real SDK sends typed diagnostics over its framed output. No
+        # request or response contents enter those diagnostic fields.
+        degraded = [entry for entry in self.host.diagnostics if entry["kind"] == "degraded"]
+        self.assertEqual(len(degraded), 1)
+        self.assertEqual(degraded[0]["operation"], "requests.execute")
+        self.assertEqual(degraded[0]["code"], "preview_truncated")
+        self.assertEqual(degraded[0]["operationId"], "op-3")
+        log = json.dumps(self.host.diagnostics)
+        self.assertNotIn(self.url, log)
+        self.assertNotIn("好🙂", log)
+        self.assertEqual(os.pread(self.host.log.fileno(), 65536, 0), b"")
 
     def test_configurable_preview_and_default(self):
         for limit in [1, 49, 256, 512]:
@@ -194,6 +209,8 @@ class ProtocolTests(unittest.TestCase):
         self.assertGreater(len(value["body"].encode()), 127 * 1024)
         self.assertLessEqual(len(value["body"].encode()), 128 * 1024)
         self.assertTrue(value["truncated"])
+        degraded = [entry for entry in self.host.diagnostics if entry["kind"] == "degraded"]
+        self.assertEqual(len(degraded), 1)
 
     def test_escaped_preview_respects_transport_budget(self):
         value = self.host.answer(self.host.invoke("requests.execute", {"text": f"GET {self.url}/escaped", "index": 0, "previewLimitKiB": 512}))["result"]
@@ -209,6 +226,11 @@ class ProtocolTests(unittest.TestCase):
     def test_no_state_files_written(self):
         self.assertEqual(self.execute(f"GET {self.url}/ok")["result"]["status"], 200)
         self.assertEqual(list(Path(self.temp.name).iterdir()), [])
+        self.assertEqual(os.pread(self.host.log.fileno(), 65536, 0), b"")
+        self.assertEqual(len(self.host.diagnostics), 1)
+        self.assertEqual(self.host.diagnostics[0]["kind"], "operationFinished")
+        self.assertEqual(self.host.diagnostics[0]["operation"], "requests.execute")
+        self.assertGreaterEqual(self.host.diagnostics[0]["durationMs"], 0)
 
 
 class TimedResult(unittest.TextTestResult):

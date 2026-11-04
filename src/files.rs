@@ -192,6 +192,7 @@ pub fn register(backend: &mut Backend) -> Result<(), lithe_plugin_sdk::SdkError>
         preview_context(context)?;
         Ok(json!({"available": true}))
     })?;
+    backend.suppress_success_diagnostics("response.previewInfo")?;
     backend.function("response.save", |params, context| {
         context.check_cancelled()?;
         let text = params["text"]
